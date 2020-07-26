@@ -1,17 +1,17 @@
 provider "aws"{
 	region = "ap-south-1"
-	profile = "modi"
+	profile = "mr-halkat"
 }
 resource "aws_instance" "MyInstance" {
-	ami = "ami-0447a12f28fddb066"
+	ami = "ami-052c08d70def0ac62" //rhel os image provided -comes under free tier	
 	instance_type = "t2.micro"
-	key_name = "mykey"
+	key_name = "mykey" //Key Name 
 	security_groups = ["launch-wizard-4"]
 
 	connection {
 		type = "ssh"
 		user = "ec2-user"
-		private_key = file("C:/Users/modif/Downloads/mykey.pem")
+		private_key = file("C:/Users/Adi/Downloads/mykey.pem") // Key location in your localhost desktop
 		host = aws_instance.MyInstance.public_ip
 	}
 	provisioner "remote-exec" {
@@ -50,7 +50,7 @@ depends_on = [
 	connection{
 		type = "ssh"
 		user = "ec2-user"
-		private_key = file("C:/Users/modif/Downloads/mykey.pem")
+		private_key = file("C:/Users/Adi/Downloads/mykey.pem")
 		host = aws_instance.MyInstance.public_ip
 	}
 	provisioner "remote-exec"{
@@ -58,57 +58,37 @@ depends_on = [
 		"sudo mkfs.ext4 /dev/xvdh",
 		"sudo mount /dev/xvdh  /var/www/html",
 		"sudo rm -rf /var/www/html/*",
-		"sudo git clone https://github.com/modi2801/terraform.git /var/www/html",
+		"sudo git clone https://github.com/adi-001/Terraform-workspace.git /var/www/html",
 		]
 	}
 }
 
-resource "aws_s3_bucket" "modi2801s3bucketforimage" {
-	bucket = "modi2801s3bucketforimage"
-	acl = "public-read"
-	force_destroy = true
-	tags = {
-		Name = "modi2801s3bucketforimage"
-	}
-}
-
-resource "aws_s3_bucket_object" "Image" {
-depends_on = [
-	aws_s3_bucket.modi2801s3bucketforimage,
-]
-	bucket = "${aws_s3_bucket.modi2801s3bucketforimage.id}"
-	key = "modi"
-	source = "C:/Users/modif/OneDrive/Desktop/download.jfif"
-	acl = "public-read"
-}
-
-resource "aws_cloudfront_origin_access_identity" "OAI" {
-	comment = "This is origin access identity"
-}
-
+	
 locals {
-	s3_origin_id = "aws_s3_bucket.modi2801s3bucketforimage.id"
+	s3_origin_id = "aws_s3_bucket.bucket-for-image-source.id"
 }
+
+
 
 resource "aws_cloudfront_distribution" "s3_distribution" {
 	enabled             = true
 	is_ipv6_enabled     = true
 	origin {
-		domain_name = "modi2801s3bucketforimage.s3.amazonaws.com"
-		origin_id = "S3-modi2801s3bucketforimage"
+		domain_name = "bucket-for-image-source.s3.amazonaws.com"
+		origin_id = "S3-bucket-for-image-source"
 		s3_origin_config {
 		origin_access_identity = aws_cloudfront_origin_access_identity.OAI.cloudfront_access_identity_path
 		}
 	}
-	default_root_object = "modi"
+	default_root_object = "Adi"
 		logging_config {
 			include_cookies = false
-			bucket = aws_s3_bucket.modi2801s3bucketforimage.bucket_domain_name
+			bucket = aws_s3_bucket.bucket-for-image-source.bucket_domain_name
 		}
 	default_cache_behavior {
 		allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
 		cached_methods   = ["GET", "HEAD"]
-		target_origin_id = "S3-modi2801s3bucketforimage"
+		target_origin_id = "S3-bucket-for-image-source"
 
 		forwarded_values {
 			query_string = false
@@ -127,7 +107,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 		path_pattern = "/content/immutable/*"
 		allowed_methods = ["GET" , "HEAD" , "OPTIONS"]
 		cached_methods = ["GET" , "HEAD" , "OPTIONS"]
-		target_origin_id = "S3-modi2801s3bucketforimage"
+		target_origin_id = "S3-bucket-for-image-source"
 
 		forwarded_values {
 		query_string = false
@@ -146,7 +126,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 		path_pattern = "/content/*"
 		allowed_methods = ["GET" , "HEAD" ]
 		cached_methods = ["GET" , "HEAD" ]
-		target_origin_id = "S3-modi2801s3bucketforimage"
+		target_origin_id = "S3-bucket-for-image-source"
 
 		forwarded_values {
 		query_string = false
@@ -196,7 +176,7 @@ depends_on =[
 data "aws_iam_policy_document" "MyBucketPolicy" {
   statement {
     actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.modi2801s3bucketforimage.arn}/*"]
+    resources = ["${aws_s3_bucket.bucket-for-image-source.arn}/*"]
 
     principals {
       type        = "AWS"
@@ -205,7 +185,7 @@ data "aws_iam_policy_document" "MyBucketPolicy" {
   }
   statement {
     actions   = ["s3:ListBucket"]
-    resources = [aws_s3_bucket.modi2801s3bucketforimage.arn]
+    resources = [aws_s3_bucket.bucket-for-image-source.arn]
 
     principals {
       type        = "AWS"
@@ -215,7 +195,7 @@ data "aws_iam_policy_document" "MyBucketPolicy" {
 }
 
 resource "aws_s3_bucket_policy" "bucket_policy" {
-  bucket = aws_s3_bucket.modi2801s3bucketforimage.id
+  bucket = aws_s3_bucket.bucket-for-image-source.id
   policy = data.aws_iam_policy_document.MyBucketPolicy.json
 }
 
