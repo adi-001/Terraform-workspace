@@ -1,4 +1,4 @@
-<b><center>Task-4</center></b> 
+<b>Task-4</b> :
 Perform task-3 with an additional feature to be added that is NAT Gateway to provide the internet access to instances running in the private subnet.
 
 Performing the following steps:
